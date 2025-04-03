@@ -1,0 +1,19 @@
+{
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "files.associations": {
+        "i2c.h": "c",
+        "accelerometer.h": "c",
+        "stdint.h": "c",
+        "rotaryencoder.h": "c",
+        "periodtimer.h": "c",
+        "btn_statemachine.h": "c",
+        "unistd.h": "c",
+        "assert.h": "c",
+        "shutdown.h": "c",
+        "time.h": "c",
+        "timing.h": "c",
+        "audiomixer.h": "c",
+        "pthread.h": "c",
+        "cstdlib": "c"
+    }
+}
