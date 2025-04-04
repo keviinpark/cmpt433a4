@@ -60,11 +60,11 @@ void Neopixel_init(void)
     r5base = getR5MmapAddr();
 
     MEM_UINT32(r5base + INIT_OFFSET) = HAL_UNINITIALIZED;
-    MEM_UINT32(r5base + LED_DELAY_MS_OFFSET) = 250;
+    MEM_UINT32(r5base + LED_DELAY_MS_OFFSET) = 50;
 
     // initialize LEDs to OFF
     for (int i = 0; i < NEO_NUM_LEDS; i++) {
-        Neopixel_setLED(i, LED_OFF);
+        Neopixel_setLED(i, LED_BLUE_BRIGHT);
     }
 
     MEM_UINT32(r5base + INIT_OFFSET) = HAL_INITIALIZED;
@@ -90,14 +90,4 @@ void Neopixel_setLED(uint32_t index, uint32_t color)
     assert(index < NEO_NUM_LEDS);
 
     MEM_UINT32(r5base + (COLOR_0_OFFSET + (sizeof(uint32_t) * index))) = color;
-}
-
-// print shared data
-void Neopixel_printData(void)
-{
-    printf(
-        "Button: %15s   Btn Count: %7d\n", 
-        MEM_UINT32(r5base + IS_BUTTON_PRESSED_OFFSET) ? "Pressed" : "Not pressed",
-        MEM_UINT32(r5base + BTN_COUNT_OFFSET)
-    );
 }

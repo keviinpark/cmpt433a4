@@ -89,7 +89,6 @@ int main(void)
 	initialize_gpio(&btn, GPIO_INPUT);
 	initialize_gpio(&neopixel, GPIO_OUTPUT_ACTIVE);
 
-
 	// COLOURS
 	// - 1st element in array is 1st (bottom) on LED strip; last element is last on strip (top)
 	// - Bits: {Green/8 bits} {Red/8 bits} {Blue/8 bits} {White/8 bits}
@@ -133,8 +132,6 @@ int main(void)
 	printf("Addresses\n");
 	printf("  %20s = 0x%08x\n", "msg", MSG_OFFSET);
 	printf("  %20s = 0x%08x\n", "ledDelay_ms", LED_DELAY_MS_OFFSET);
-	printf("  %20s = 0x%08x\n", "isButtonPressed", IS_BUTTON_PRESSED_OFFSET);
-	printf("  %20s = 0x%08x\n", "btnCount", BTN_COUNT_OFFSET);
 
 	// Setup defaults
 	printf("Writing to ATCM...\n");
@@ -148,8 +145,6 @@ int main(void)
 	}
 
 	MEM_UINT32(LED_DELAY_MS_OFFSET) = DEFAULT_LED_DELAY_MS;
-	MEM_UINT32(IS_BUTTON_PRESSED_OFFSET) = 0;
-	MEM_UINT32(BTN_COUNT_OFFSET) = 0;
 	MEM_UINT32(INIT_OFFSET) = 0;
 
 	printf("Contents of Shared Memory ATCM After Write:\n");
@@ -158,9 +153,6 @@ int main(void)
 		printf("0x%08x = %2x (%c)\n", (uint32_t) addr, *addr, *addr);
 	}
 
-	bool led_state = true;
-	uint32_t btnCount = 0;
-	uint32_t loopCount = 0;
 	uint32_t initialized = 0;
 	while (true) {
 		initialized = MEM_UINT32(INIT_OFFSET);
@@ -174,14 +166,9 @@ int main(void)
 			color[LED_2] = MEM_UINT32(COLOR_2_OFFSET);
 			color[LED_1] = MEM_UINT32(COLOR_1_OFFSET);
 			color[LED_0] = MEM_UINT32(COLOR_0_OFFSET);
-		} else {
-			for (int i = 0; i < NEO_NUM_LEDS; i++) {
-				color[i] = 0x00000000;
-			}
 		}
 
 		// Neopixel (led state basically unused)
-		printf("LED state: %s\n", led_state ? "OFF" : "ON");
 		gpio_pin_set_dt(&neopixel, 0);
 		DELAY_NS(NEO_RESET_NS);
 
@@ -203,23 +190,6 @@ int main(void)
 
 		gpio_pin_set_dt(&neopixel, 0);
 		NEO_DELAY_RESET();
-		led_state = !led_state;
-
-
-		// Read GPIO state and share with Linux
-		int state = gpio_pin_get_dt(&btn);
-		bool isPressed = state == 0;
-		printf("Is button pressed? %d\n", isPressed);
-
-		// Update shared count of butten pressed
-		if (isPressed) {
-			btnCount++;
-		}
-		loopCount++;
-
-		// Update shared memory to Linux
-		MEM_UINT32(IS_BUTTON_PRESSED_OFFSET) = isPressed;
-		MEM_UINT32(BTN_COUNT_OFFSET) = btnCount;
 
 		// Wait for delay (set by Linux app)
 		uint32_t delay = MEM_UINT32(LED_DELAY_MS_OFFSET);
