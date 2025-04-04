@@ -58,6 +58,8 @@ void Neopixel_init(void)
 
     // set delay
     MEM_UINT32(r5base + LED_DELAY_MS_OFFSET) = 250;
+    MEM_UINT32(r5base + COLOR_0_OFFSET) = 0x0000ff00; // Blue Bright
+    MEM_UINT32(r5base + COLOR_7_OFFSET) = 0x0000ff00; // Blue Bright
 
     isInitialized = true;
 }

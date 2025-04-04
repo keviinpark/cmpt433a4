@@ -148,15 +148,15 @@ int main(void)
 	uint32_t loopCount = 0;
 	while (true) {
 		// testing switching colors
-		if (loopCount > 300) {
-			color[7] = 0xff000000;
+		if (loopCount > 175) {
+			color[7] = MEM_UINT32(COLOR_7_OFFSET);
 			color[6] = 0xff000000;
 			color[5] = 0xff000000;
 			color[4] = 0xff000000;
 			color[3] = 0xff000000;
 			color[2] = 0xff000000;
 			color[1] = 0xff000000;
-			color[0] = 0xff000000;
+			color[0] = MEM_UINT32(COLOR_0_OFFSET);
 		}
 
 		// Neopixel (led state basically unused)
