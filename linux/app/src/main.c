@@ -19,18 +19,17 @@ int main()
     Period_init();
     Shutdown_init();
 
-    // Start main body
-    while (true) {
-        Neopixel_printData();
-
-        Timing_sleepForMS(1000);
+    // DEBUG: set leds
+    for (int i = 0; i < NEO_NUM_LEDS; i++) {
+        Neopixel_setLED(i, LED_BLUE_BRIGHT);
     }
 
     Shutdown_wait();
 
     // End main body
-
     printf("Shutting down...\n");
+
+    //JoystickBtnShutdown_cleanup();
 
     // End main app modules
     Shutdown_cleanup();

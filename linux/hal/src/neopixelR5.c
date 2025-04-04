@@ -16,6 +16,9 @@
 #define BTCM_ADDR     0x79020000  // MCU BTCM (p59 TRM)
 #define MEM_LENGTH    0x8000
 
+#define HAL_UNINITIALIZED 0x00000000
+#define HAL_INITIALIZED   0x00000001
+
 static bool isInitialized = false;
 static volatile void *r5base = NULL;
 
@@ -56,11 +59,15 @@ void Neopixel_init(void)
     // Get access to shared memory for my uses
     r5base = getR5MmapAddr();
 
-    // set delay
+    MEM_UINT32(r5base + INIT_OFFSET) = HAL_UNINITIALIZED;
     MEM_UINT32(r5base + LED_DELAY_MS_OFFSET) = 250;
-    MEM_UINT32(r5base + COLOR_0_OFFSET) = 0x0000ff00; // Blue Bright
-    MEM_UINT32(r5base + COLOR_7_OFFSET) = 0x0000ff00; // Blue Bright
 
+    // initialize LEDs to OFF
+    for (int i = 0; i < NEO_NUM_LEDS; i++) {
+        Neopixel_setLED(i, LED_OFF);
+    }
+
+    MEM_UINT32(r5base + INIT_OFFSET) = HAL_INITIALIZED;
     isInitialized = true;
 }
 
@@ -68,18 +75,29 @@ void Neopixel_cleanup(void)
 {
     assert(isInitialized);
 
+    for (int i = 0; i < NEO_NUM_LEDS; i++) {
+        Neopixel_setLED(i, LED_OFF);
+    }
+
     freeR5MmapAddr(r5base);
 
     isInitialized = false;
+}
+
+// Set the color of an LED
+void Neopixel_setLED(uint32_t index, uint32_t color)
+{
+    assert(index < NEO_NUM_LEDS);
+
+    MEM_UINT32(r5base + (COLOR_0_OFFSET + (sizeof(uint32_t) * index))) = color;
 }
 
 // print shared data
 void Neopixel_printData(void)
 {
     printf(
-        "Button: %15s   Btn Count: %7d    Loop Count: %7d\n", 
+        "Button: %15s   Btn Count: %7d\n", 
         MEM_UINT32(r5base + IS_BUTTON_PRESSED_OFFSET) ? "Pressed" : "Not pressed",
-        MEM_UINT32(r5base + BTN_COUNT_OFFSET),
-        MEM_UINT32(r5base + LOOP_COUNT_OFFSET)
+        MEM_UINT32(r5base + BTN_COUNT_OFFSET)
     );
 }

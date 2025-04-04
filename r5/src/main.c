@@ -22,7 +22,6 @@ static void *pSharedMem = (void *) SHARED_MEM_BTCM_START;
 #define MICRO_SECONDS_PER_MILI_SECOND   (1000)
 #define DEFAULT_LED_DELAY_MS            (100)
 
-
 // NeoPixel Timing
 // NEO_<one/zero>_<on/off>_NS
 // (These times are what the hardware needs; the delays below are hand-tuned to give these).
@@ -55,6 +54,15 @@ volatile int junk_delay = 0;
 #define BTN0_NODE DT_ALIAS(btn0)
 #define NEOPIXEL_NODE DT_ALIAS(neopixel)
 
+#define LED_0 0
+#define LED_1 1
+#define LED_2 2
+#define LED_3 3
+#define LED_4 4
+#define LED_5 5
+#define LED_6 6
+#define LED_7 7
+
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static const struct gpio_dt_spec btn = GPIO_DT_SPEC_GET(BTN0_NODE, gpios);
 static const struct gpio_dt_spec neopixel = GPIO_DT_SPEC_GET(NEOPIXEL_NODE, gpios);
@@ -86,15 +94,23 @@ int main(void)
 	// - 1st element in array is 1st (bottom) on LED strip; last element is last on strip (top)
 	// - Bits: {Green/8 bits} {Red/8 bits} {Blue/8 bits} {White/8 bits}
 	uint32_t color[NEO_NUM_LEDS] = {
-		0x0f000000, // Green
-		0x000f0000, // Red
-		0x00000f00, // Blue
-		0x0000000f, // White
-		0x0f0f0f00, // White (via RGB)
-		0x0f0f0000, // Yellow
-		0x000f0f00, // Purple
-		0x0f000f00, // Teal
+		0x00000000,
+		0x00000000,
+		0x00000000,
+		0x00000000,
+		0x00000000,
+		0x00000000,
+		0x00000000,
+		0x00000000,
 
+		//0x0f000000, // Green
+		//0x000f0000, // Red
+		//0x00000f00, // Blue
+		//0x0000000f, // White
+		//0x0f0f0f00, // White (via RGB)
+		//0x0f0f0000, // Yellow
+		//0x000f0f00, // Purple
+		//0x0f000f00, // Teal
 		// Try these; they are birght! 
 		// (You'll need to comment out some of the above)
 		// 0xff000000, // Green Bright
@@ -119,7 +135,6 @@ int main(void)
 	printf("  %20s = 0x%08x\n", "ledDelay_ms", LED_DELAY_MS_OFFSET);
 	printf("  %20s = 0x%08x\n", "isButtonPressed", IS_BUTTON_PRESSED_OFFSET);
 	printf("  %20s = 0x%08x\n", "btnCount", BTN_COUNT_OFFSET);
-	printf("  %20s = 0x%08x\n", "loopCount", LOOP_COUNT_OFFSET);
 
 	// Setup defaults
 	printf("Writing to ATCM...\n");
@@ -135,7 +150,7 @@ int main(void)
 	MEM_UINT32(LED_DELAY_MS_OFFSET) = DEFAULT_LED_DELAY_MS;
 	MEM_UINT32(IS_BUTTON_PRESSED_OFFSET) = 0;
 	MEM_UINT32(BTN_COUNT_OFFSET) = 0;
-	MEM_UINT32(LOOP_COUNT_OFFSET) = 0;
+	MEM_UINT32(INIT_OFFSET) = 0;
 
 	printf("Contents of Shared Memory ATCM After Write:\n");
 	for (int i = 0; i < END_MEMORY_OFFSET; i++) {
@@ -146,17 +161,23 @@ int main(void)
 	bool led_state = true;
 	uint32_t btnCount = 0;
 	uint32_t loopCount = 0;
+	uint32_t initialized = 0;
 	while (true) {
-		// testing switching colors
-		if (loopCount > 175) {
-			color[7] = MEM_UINT32(COLOR_7_OFFSET);
-			color[6] = 0xff000000;
-			color[5] = 0xff000000;
-			color[4] = 0xff000000;
-			color[3] = 0xff000000;
-			color[2] = 0xff000000;
-			color[1] = 0xff000000;
-			color[0] = MEM_UINT32(COLOR_0_OFFSET);
+		initialized = MEM_UINT32(INIT_OFFSET);
+
+		if (initialized == 1) {
+			color[LED_7] = MEM_UINT32(COLOR_7_OFFSET);
+			color[LED_6] = MEM_UINT32(COLOR_6_OFFSET);
+			color[LED_5] = MEM_UINT32(COLOR_5_OFFSET);
+			color[LED_4] = MEM_UINT32(COLOR_4_OFFSET);
+			color[LED_3] = MEM_UINT32(COLOR_3_OFFSET);
+			color[LED_2] = MEM_UINT32(COLOR_2_OFFSET);
+			color[LED_1] = MEM_UINT32(COLOR_1_OFFSET);
+			color[LED_0] = MEM_UINT32(COLOR_0_OFFSET);
+		} else {
+			for (int i = 0; i < NEO_NUM_LEDS; i++) {
+				color[i] = 0x00000000;
+			}
 		}
 
 		// Neopixel (led state basically unused)
@@ -198,7 +219,6 @@ int main(void)
 
 		// Update shared memory to Linux
 		MEM_UINT32(IS_BUTTON_PRESSED_OFFSET) = isPressed;
-		MEM_UINT32(LOOP_COUNT_OFFSET) = loopCount;
 		MEM_UINT32(BTN_COUNT_OFFSET) = btnCount;
 
 		// Wait for delay (set by Linux app)
@@ -206,5 +226,6 @@ int main(void)
 		printf("Waiting for %d ms\n", delay);
 		k_busy_wait(delay * MICRO_SECONDS_PER_MILI_SECOND);	
 	}
+
 	return 0;
 }
