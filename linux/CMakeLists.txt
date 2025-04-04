@@ -7,6 +7,7 @@ project(finddot
 )
 
 # Compiler options (inherited by sub-folders)
+
 set(CMAKE_C_STANDARD 11)
 add_compile_options(-Wall -Wpedantic -Wextra)
 add_compile_options(-fdiagnostics-color)
@@ -19,6 +20,8 @@ add_compile_options(-g)
 
 # ignore unused variables and parameters for now
 #add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-unused-parameter)
+
+add_compile_options(-Wno-pointer-arith)
 
 # Enable address sanitizer
 # (Comment this out to make your code faster)
