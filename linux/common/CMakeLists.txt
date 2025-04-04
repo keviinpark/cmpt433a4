@@ -8,8 +8,8 @@ file(GLOB MY_SOURCES "src/*.c")
 add_library(common STATIC ${MY_SOURCES})
 
 # ALSA support
-find_package(ALSA REQUIRED)
-target_link_libraries(common LINK_PRIVATE asound)
+#find_package(ALSA REQUIRED)
+#target_link_libraries(common LINK_PRIVATE asound)
 
 # Make use of the libraries
 target_include_directories(common PUBLIC include)

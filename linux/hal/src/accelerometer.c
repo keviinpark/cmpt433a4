@@ -18,7 +18,6 @@
 
 #include "common/periodTimer.h"
 #include "common/timing.h"
-#include "../../app/include/drumBeats.h"
 #include "hal/i2c.h"
 
 // Device bus & address
@@ -159,13 +158,13 @@ static void do_state() {
     }
 
     if (data.x_changed) {
-        DrumBeats_playSound(SOUND_HI_HAT);
+        //DrumBeats_playSound(SOUND_HI_HAT);
     }
     if (data.y_changed) {
-        DrumBeats_playSound(SOUND_BASE_DRUM);
+        //DrumBeats_playSound(SOUND_BASE_DRUM);
     }
     if (data.z_changed) {
-        DrumBeats_playSound(SOUND_SNARE);
+        //DrumBeats_playSound(SOUND_SNARE);
     }
 }
 

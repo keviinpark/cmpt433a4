@@ -33,9 +33,8 @@ add_compile_options(-pthread)
 add_link_options(-pthread)
 
 # sound library
-find_package(ALSA)
-add_compile_options(-lasound)
-add_link_options(-lasound)
+#add_compile_options(-lasound)
+#add_link_options(-lasound)
 
 # What folders to build
 add_subdirectory(lgpio)
