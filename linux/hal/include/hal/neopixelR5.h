@@ -71,4 +71,7 @@ void Neopixel_cleanup(void);
 // set color of an LED
 void Neopixel_setLED(uint32_t index, uint32_t color);
 
+// reset color of LEDs
+void Neopixel_resetLEDs(void);
+
 #endif

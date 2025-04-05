@@ -56,10 +56,7 @@ void Neopixel_init(void)
     // Get access to shared memory for my uses
     r5base = getR5MmapAddr();
 
-    // initialize LEDs to OFF
-    for (int i = 0; i < NEO_NUM_LEDS; i++) {
-        Neopixel_setLED(i, LED_BLUE_BRIGHT);
-    }
+    Neopixel_resetLEDs();
 
     isInitialized = true;
 }
@@ -68,9 +65,7 @@ void Neopixel_cleanup(void)
 {
     assert(isInitialized);
 
-    for (int i = 0; i < NEO_NUM_LEDS; i++) {
-        Neopixel_setLED(i, LED_OFF);
-    }
+    Neopixel_resetLEDs();
 
     freeR5MmapAddr(r5base);
 
@@ -83,4 +78,12 @@ void Neopixel_setLED(uint32_t index, uint32_t color)
     assert(index < NEO_NUM_LEDS);
 
     setSharedMem_uint32(r5base, C0_OFFSET + index * sizeof(uint32_t), color);
+}
+
+// reset color of LEDs
+void Neopixel_resetLEDs(void)
+{
+    for (int i = 0; i < NEO_NUM_LEDS; i++) {
+        Neopixel_setLED(i, LED_OFF);
+    }
 }
