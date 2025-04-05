@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 static bool isInitialized = false;
 static bool isRunning = false;
@@ -38,7 +39,10 @@ static void* gameThread(void* _args)
     // This is currently just testing out LEDs
     // count to 8 (last led index + 1) and then loop back around to 1, then
     // repeat this process (i.e. -1, 0, 1, 2, ..., 7, 8, 7, 6, ..., 0, -1, 0, 1, 2 ...)
-    bool reverse = false;
+
+    Neopixel_resetLEDs();
+
+    // bool reverse = false;
     int curr = -1;
 
     // Set random point as target
@@ -54,38 +58,68 @@ static void* gameThread(void* _args)
         printf("Current x, y coordinates: %f, %f\n", CurrentCoords.x, CurrentCoords.y);
 
         // Directly pointing at target (IMPLEMENT BLUE WITH ALL LED ON)
-        if (CurrentCoords.x - Target.x <= 0.1 && CurrentCoords.y - Target.y <= 0.1) {
+        if ((fabs(CurrentCoords.x - Target.x) <= 0.1) && (fabs(CurrentCoords.y - Target.y) <= 0.1)) {
             printf("Shoot!\n");
+            for (int i = 0; i < 8; i++) {
+                Neopixel_setLED(i, LED_BLUE_BRIGHT);
+            }
             onTarget = true;
         } 
         
-        else {
+        // IMPLEMENT LED TO SHOW CLOSENESS TO TARGET
+        // RED AND GREEN FOR LEFT AND RIGHT, BLUE FOR ON TARGET X
+
+        else if (fabs(CurrentCoords.x - Target.x) <= 0.1) {
+            printf("Stay!\n");
+            for (int i = 0; i < 8; i++) {
+                Neopixel_setLED(i, LED_BLUE);
+            }
+            onTarget = false;   
+        }
+        else if (Target.x < CurrentCoords.x) {
+            printf("Move left!\n");
+            for (int i = 0; i < 8; i++) {
+                Neopixel_setLED(i, LED_RED);
+            }
+            onTarget = false;        
+        }
+
+        else if (Target.x > CurrentCoords.x) {
+            printf("Move right!\n");
+            for (int i = 0; i < 8; i++) {
+                Neopixel_setLED(i, LED_GREEN);
+            }
             onTarget = false;        
         }
         
         currentRotaryCounter = RotaryEncoderBtn_getValue();
 
-        // On target and fired (IMPLEMENT LED)
+        // On target and fired (IMPLEMENT LED HIT EFFECT)
         if (onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Hit!\n");
             hits += 1;
             newTarget();
+            printf("Random point: %f, %f\n", Target.x, Target.y);
+            Timing_sleepForMS(1000);
         }
 
-        // Off target and fired (IMPLEMENT LED)
+        // Off target and fired (IMPLEMENT LED MISS EFFECT)
         else if (!onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Miss!\n");
             misses += 1;
+            Timing_sleepForMS(1000);
         }
 
         prevRotaryCounter = currentRotaryCounter;
 
-        printf("Elapsed time ms: %lld\n", elapsedTimeMS);
+        Timing_sleepForMS(1000);
+
+        /* printf("Elapsed time ms: %lld\n", elapsedTimeMS);
 
         long long startTimeMS = Timing_getTimeMS();
 
         Neopixel_resetLEDs();
-
+        
         // animation
         int prev = curr - 1;
         if (prev >= 0 && prev < NEO_NUM_LEDS) {
@@ -113,10 +147,10 @@ static void* gameThread(void* _args)
             curr++;
         }
 
-        Timing_sleepForMS(100);
+        
 
         long long currentTimeMS = Timing_getTimeMS() + 100; // + account for sleep
-        elapsedTimeMS += currentTimeMS - startTimeMS;
+        elapsedTimeMS += currentTimeMS - startTimeMS; */
     }
 
     return NULL;
