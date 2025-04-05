@@ -1,6 +1,7 @@
 /*
  * R5 Sample Code for Shared Memory with Linux
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/kernel.h>

@@ -10,12 +10,12 @@
 #include "common/periodTimer.h"
 #include "hal/neopixelR5.h"
 
-static bool inRange(int index) {
-    if (index >= 0 && index < 8) {
-        return true;
-    }
-    return false;
-}
+//static bool inRange(int index) {
+//    if (index >= 0 && index < 8) {
+//        return true;
+//    }
+//    return false;
+//}
 
 int main()
 {
@@ -30,34 +30,47 @@ int main()
 
     // DEBUG: testing animation
     bool reverse = false;
-    int iter = -1;
+    int curr = -1;
     while (true) {
-        printf("current iteration: %d\n", iter);
+        // curr should be [-1 (first led index - 1), 8 (last led index + 1)]
+        assert(curr >= -1);
+        assert(curr <= NEO_NUM_LEDS);
 
-        if (inRange(iter)) {
-            Neopixel_setLED(iter, LED_GREEN_BRIGHT);
+        for (int j = 0; j < NEO_NUM_LEDS; j++) {
+            Neopixel_setLED(j, LED_OFF);
         }
 
-        if (inRange(iter-1) && (iter-1) >= 0) {
-            Neopixel_setLED(iter-1, LED_GREEN);
+        // animation
+        int prev = curr - 1;
+        if (prev >= 0 && prev < NEO_NUM_LEDS) {
+            Neopixel_setLED(prev, LED_GREEN);
         }
 
-        if (inRange(iter+1) && (iter+1) <= 7) {
-            Neopixel_setLED(iter+1, LED_GREEN);
+        if (curr >= 0 && curr < NEO_NUM_LEDS) {
+            Neopixel_setLED(curr, LED_GREEN_BRIGHT);
         }
 
-        if (iter < 0) {
+        int next = curr + 1;
+        if (next >= 0 && next < NEO_NUM_LEDS) {
+            Neopixel_setLED(next, LED_GREEN);
+        }
+
+        if (curr < 0) {
             reverse = false;
-        } else if (iter >= NEO_NUM_LEDS) {
+        } else if (curr >= NEO_NUM_LEDS) {
             reverse = true;
         }
 
-        if (!reverse) {
-            iter += 1;
+        if (reverse) {
+            curr--;
         } else {
-            iter -= 1;
+            curr++;
         }
+
+        // Timing
+        Timing_sleepForMS(100);
     }
+
     Shutdown_wait();
 
     // End main body
