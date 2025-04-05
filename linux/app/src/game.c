@@ -20,6 +20,14 @@ static long long elapsedTimeMS = 0;
 bool onTarget = false;
 int prevRotaryCounter = 0;
 int currentRotaryCounter;
+coordinates Target;
+
+void newTarget() {
+    srand(time(NULL));
+
+    Target.x = ((double)rand() / RAND_MAX) - 0.5;
+    Target.y = ((double)rand() / RAND_MAX) - 0.5;
+}
 
 // main thread
 static void* gameThread(void* _args)
@@ -34,12 +42,9 @@ static void* gameThread(void* _args)
     int curr = -1;
 
     // Set random point as target
-    srand(time(NULL));
-
-    double x = ((double)rand() / RAND_MAX) - 0.5;
-    double y = ((double)rand() / RAND_MAX) - 0.5;
-
-    printf("Random point: %f, %f\n", x, y);
+    newTarget();
+    
+    printf("Random point: %f, %f\n", Target.x, Target.y);
 
     while (isRunning) {
         assert(curr >= -1);
@@ -49,7 +54,7 @@ static void* gameThread(void* _args)
         printf("Current x, y coordinates: %f, %f\n", CurrentCoords.x, CurrentCoords.y);
 
         // Directly pointing at target (IMPLEMENT BLUE WITH ALL LED ON)
-        if (CurrentCoords.x - x <= 0.1 && CurrentCoords.y - y <= 0.1) {
+        if (CurrentCoords.x - Target.x <= 0.1 && CurrentCoords.y - Target.y <= 0.1) {
             printf("Shoot!\n");
             onTarget = true;
         } 
@@ -63,11 +68,14 @@ static void* gameThread(void* _args)
         // On target and fired (IMPLEMENT LED)
         if (onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Hit!\n");
+            hits += 1;
+            newTarget();
         }
 
         // Off target and fired (IMPLEMENT LED)
         else if (!onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Miss!\n");
+            misses += 1;
         }
 
         prevRotaryCounter = currentRotaryCounter;
