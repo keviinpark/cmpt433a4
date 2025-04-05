@@ -15,6 +15,7 @@
 #include <time.h>
 #include <assert.h>
 #include <pthread.h>
+#include <math.h>
 
 #include "common/periodTimer.h"
 #include "common/timing.h"
@@ -43,41 +44,23 @@
 #define BREAKPOINT_Y 8000
 #define BREAKPOINT_Z 10000
 
-static accel_data_t data;
-
 static int16_t read_axis(int i2c_file_desc, uint8_t reg_l, uint8_t reg_h);
+static void do_state();
 
 static bool isInitialized = false;
 static bool isRunning = false;
 static pthread_t mainThreadID;
-
-static void do_state();
-
-static long long timeChangedX, timeChangedY, timeChangedZ = 0;
-static int16_t prev_raw_x = 0;
-static int16_t prev_raw_y = 0;
-static int16_t prev_raw_z = 0;
 static int i2c_file_desc;
-static int firstRun = 1;
 
-accel_data_t Accel_getData() {
-    return data;
-}
+coordinates currentCoords;
 
-static bool isPassedEnoughTime(int debounce, long long currentTime, long long startTime) {
-    if ((currentTime - startTime) < debounce) {
-        return false;
-    }
-    return true;
+coordinates Accel_getCurrentCoords() {
+    return currentCoords;
 }
 
 static void *accelUpdateThread(void *args)
 {
     (void)args;
-
-    data.x_changed = false;
-    data.y_changed = false;
-    data.z_changed = false;
 
     printf("Reading Accelerometer Data...\n");
 
@@ -101,71 +84,14 @@ static void do_state() {
 
     int16_t raw_x = read_axis(i2c_file_desc, REG_OUT_X_L, REG_OUT_X_H);
     int16_t raw_y = read_axis(i2c_file_desc, REG_OUT_Y_L, REG_OUT_Y_H);
-    int16_t raw_z = read_axis(i2c_file_desc, REG_OUT_Z_L, REG_OUT_Z_H);
 
-    Period_markEvent(PERIOD_EVENT_ACCEL);
+    const float SCALE = 16384.0f;
 
-    if (firstRun == 1) {
-        prev_raw_x = raw_x;
-        prev_raw_y = raw_y;
-        prev_raw_z = raw_z;
-        firstRun = 0;
-    }
+    float gy = raw_x / SCALE;
+    float gx = raw_y / SCALE;
 
-    long long currentTime = Timing_getTimeMS();
-
-    // debounce
-    if (!isPassedEnoughTime(DEBOUNCE_MS_X, currentTime, timeChangedX)) {
-        data.x_changed = false;
-    }
-    else {
-        if (abs(raw_x - prev_raw_x) > BREAKPOINT_X) {
-            timeChangedX = currentTime;
-            data.x_changed = true;
-        }
-        else {
-            data.x_changed = false;
-        }
-        prev_raw_x = raw_x;
-
-    }
-    if (!isPassedEnoughTime(DEBOUNCE_MS_Y, currentTime, timeChangedY)) {
-        data.y_changed = false;
-    }
-    else {
-        if (abs(raw_y - prev_raw_y) > BREAKPOINT_Y) {
-            timeChangedY = currentTime;
-            data.y_changed = true;
-        }
-        else {
-            data.y_changed = false;
-        }
-        prev_raw_y = raw_y;
-    }
-
-    if (!isPassedEnoughTime(DEBOUNCE_MS_Z, currentTime, timeChangedZ)) {
-        data.z_changed = false;
-    } 
-    else{
-        if (abs(raw_z - prev_raw_z) > BREAKPOINT_Z) {
-            timeChangedZ = currentTime;
-            data.z_changed = true;
-        }
-        else {
-            data.z_changed = false;
-        }
-        prev_raw_z = raw_z;
-    }
-
-    if (data.x_changed) {
-        //DrumBeats_playSound(SOUND_HI_HAT);
-    }
-    if (data.y_changed) {
-        //DrumBeats_playSound(SOUND_BASE_DRUM);
-    }
-    if (data.z_changed) {
-        //DrumBeats_playSound(SOUND_SNARE);
-    }
+    currentCoords.x = -1 * gx;
+    currentCoords.y = -1 * gy;
 }
 
 static int16_t read_axis(int i2c_file_desc, uint8_t reg_l, uint8_t reg_h) {
@@ -174,20 +100,6 @@ static int16_t read_axis(int i2c_file_desc, uint8_t reg_l, uint8_t reg_h) {
     int16_t value = ((int16_t)high << 8) | low;
 
     return value;
-}
-
-void Accel_getTiming(accel_stats_t* stats)
-{
-    assert(isInitialized);
-    assert(stats != NULL);
-
-    Period_statistics_t tmp;
-    Period_getStatisticsAndClear(PERIOD_EVENT_ACCEL, &tmp);
-
-    stats->minPeriodInMs = tmp.minPeriodInMs;
-    stats->maxPeriodInMs = tmp.maxPeriodInMs;
-    stats->avgPeriodInMs = tmp.avgPeriodInMs;
-    stats->numSamples = tmp.numSamples;
 }
 
 void Accel_init(void)

@@ -5,7 +5,7 @@ file(GLOB MY_SOURCES "src/*.c")
 add_executable(finddot ${MY_SOURCES})
 
 # Make use of the libraries
-target_link_libraries(finddot LINK_PRIVATE hal)
+target_link_libraries(finddot LINK_PRIVATE hal m)
 target_link_libraries(finddot LINK_PRIVATE common)
 target_link_libraries(finddot LINK_PRIVATE lcd)
 target_link_libraries(finddot LINK_PRIVATE lgpio)

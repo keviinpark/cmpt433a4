@@ -5,20 +5,20 @@
 #include <stdbool.h>
 
 typedef struct {
-    bool x_changed;
-    bool y_changed;
-    bool z_changed;
-} accel_data_t;
-
-typedef struct {
     int numSamples;
     double minPeriodInMs;
     double maxPeriodInMs;
     double avgPeriodInMs;
 } accel_stats_t;
 
+typedef struct {
+    double x;
+    double y;
+} coordinates;
+
 // returns a struct of x, y, z acceleration data
-accel_data_t Accel_getData();
+
+coordinates Accel_getCurrentCoords();
 
 void Accel_getTiming(accel_stats_t* stats);
 

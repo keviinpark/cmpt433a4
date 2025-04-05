@@ -1,6 +1,8 @@
 #include "game.h"
 
 #include "hal/neopixelR5.h"
+#include "hal/accelerometer.h"
+#include "hal/rotaryEncoderBtn.h"
 #include "common/timing.h"
 #include <assert.h>
 #include <pthread.h>
@@ -15,6 +17,9 @@ static pthread_t mainThreadID;
 static int hits = 0;
 static int misses = 0;
 static long long elapsedTimeMS = 0;
+bool onTarget = false;
+int prevRotaryCounter = 0;
+int currentRotaryCounter;
 
 // main thread
 static void* gameThread(void* _args)
@@ -28,9 +33,44 @@ static void* gameThread(void* _args)
     bool reverse = false;
     int curr = -1;
 
+    // Set random point as target
+    srand(time(NULL));
+
+    double x = ((double)rand() / RAND_MAX) - 0.5;
+    double y = ((double)rand() / RAND_MAX) - 0.5;
+
+    printf("Random point: %f, %f\n", x, y);
+
     while (isRunning) {
         assert(curr >= -1);
         assert(curr <= NEO_NUM_LEDS);
+
+        coordinates CurrentCoords = Accel_getCurrentCoords();
+        printf("Current x, y coordinates: %f, %f\n", CurrentCoords.x, CurrentCoords.y);
+
+        // Directly pointing at target (IMPLEMENT BLUE WITH ALL LED ON)
+        if (CurrentCoords.x - x <= 0.1 && CurrentCoords.y - y <= 0.1) {
+            printf("Shoot!\n");
+            onTarget = true;
+        } 
+        
+        else {
+            onTarget = false;        
+        }
+        
+        currentRotaryCounter = RotaryEncoderBtn_getValue();
+
+        // On target and fired (IMPLEMENT LED)
+        if (onTarget && currentRotaryCounter != prevRotaryCounter) {
+            printf("Hit!\n");
+        }
+
+        // Off target and fired (IMPLEMENT LED)
+        else if (!onTarget && currentRotaryCounter != prevRotaryCounter) {
+            printf("Miss!\n");
+        }
+
+        prevRotaryCounter = currentRotaryCounter;
 
         printf("Elapsed time ms: %lld\n", elapsedTimeMS);
 

@@ -10,6 +10,9 @@
 #include "common/timing.h"
 #include "common/periodTimer.h"
 #include "hal/neopixelR5.h"
+#include "hal/accelerometer.h"
+#include "hal/gpio.h"
+#include "hal/rotaryEncoderBtn.h"
 
 int main()
 {
@@ -17,6 +20,9 @@ int main()
 
     // Start modules
     Neopixel_init();
+    Accel_init();
+    Gpio_initialize();
+    RotaryEncoderBtn_init();
 
     // Main app modules
     Period_init();
@@ -33,6 +39,9 @@ int main()
     Period_cleanup();
 
     // End hal modules
+    RotaryEncoderBtn_cleanup();
+    Gpio_cleanup();
+    Accel_cleanup();
     Neopixel_cleanup();
 
     printf("!!! DONE !!!\n"); 
