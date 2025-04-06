@@ -22,6 +22,7 @@
 #define MICRO_SECONDS_PER_MILI_SECOND   (1000)
 #define DEFAULT_LED_DELAY_MS            (100)
 
+#define NEOPIXEL_BUSY_WAIT    (10000)
 #define NEO_NUM_LEDS          8   // # LEDs in our string
 
 // NeoPixel Timing
@@ -54,6 +55,8 @@ volatile int junk_delay = 0;
 #define BTN0_NODE DT_ALIAS(btn0)
 #define NEOPIXEL_NODE DT_ALIAS(neopixel)
 
+#define LED_OFF 0x00000000
+
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static const struct gpio_dt_spec btn = GPIO_DT_SPEC_GET(BTN0_NODE, gpios);
 static const struct gpio_dt_spec neopixel = GPIO_DT_SPEC_GET(NEOPIXEL_NODE, gpios);
@@ -85,14 +88,14 @@ int main(void)
 	// - 1st element in array is 1st (bottom) on LED strip; last element is last on strip (top)
 	// - Bits: {Green/8 bits} {Red/8 bits} {Blue/8 bits} {White/8 bits}
 	uint32_t color[NEO_NUM_LEDS] = {
-		0x00000000,
-		0x00000000,
-		0x00000000,
-		0x00000000,
-		0x00000000,
-		0x00000000,
-		0x00000000,
-		0x00000000,
+		LED_OFF,
+		LED_OFF,
+		LED_OFF,
+		LED_OFF,
+		LED_OFF,
+		LED_OFF,
+		LED_OFF,
+		LED_OFF
 		// 0x0f000000, // Green
 		// 0x000f0000, // Red
 		// 0x00000f00, // Blue
@@ -120,14 +123,9 @@ int main(void)
 		printf("0x%08x = %2x (%c)\n", i, val, val);
 	}
 
-	setSharedMem_uint32(BASE, C0_OFFSET + 0 * sizeof(uint32_t), 0x000f0000);
-	setSharedMem_uint32(BASE, C0_OFFSET + 1 * sizeof(uint32_t), 0x000f0000);
-	setSharedMem_uint32(BASE, C0_OFFSET + 2 * sizeof(uint32_t), 0x000f0000);
-	setSharedMem_uint32(BASE, C0_OFFSET + 3 * sizeof(uint32_t), 0x000f0000);
-	setSharedMem_uint32(BASE, C0_OFFSET + 4 * sizeof(uint32_t), 0x000f0000);
-	setSharedMem_uint32(BASE, C0_OFFSET + 5 * sizeof(uint32_t), 0x000f0000);
-	setSharedMem_uint32(BASE, C0_OFFSET + 6 * sizeof(uint32_t), 0x000f0000);
-	setSharedMem_uint32(BASE, C0_OFFSET + 7 * sizeof(uint32_t), 0x000f0000);
+	for (int i = 0; i < NEO_NUM_LEDS; i++) {
+		setSharedMem_uint32(BASE, C0_OFFSET + i * sizeof(uint32_t), LED_OFF);
+	}
 
 	// Setup defaults
 	printf("Writing to BTCM...\n");
@@ -199,7 +197,7 @@ int main(void)
 		printf("Delay unused?: %d\n", delay);
 
 		// Keep looping in case we plug in NeoPixel later
-		k_busy_wait(1 * 10000);
+		k_busy_wait(NEOPIXEL_BUSY_WAIT);
 	}
 	return 0;
 }
