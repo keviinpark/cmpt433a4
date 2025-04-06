@@ -63,6 +63,7 @@ static inline void setSharedMem_uint32(volatile void* base, uint32_t byte_offset
 #define LED_RED_BRIGHT   0x00ff0000
 #define LED_BLUE         0x00000f00
 #define LED_BLUE_BRIGHT  0x0000ff00
+#define LED_WHITE        0x000000ff
 
 // init/cleanup
 void Neopixel_init(void);

@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-
 #define ABS_POINT_RANGE 0.5
 
 // abs. Breakpoints from 5 (furthest away) to 1 (closest/accurate)
@@ -36,6 +35,134 @@
 
 #define LOOP_DELAY_MS 100
 
+#define ANIMATION_PLAY_TIME_MS 540
+#define ANIMATION_FRAMES 6
+static uint32_t hitAnimation[ANIMATION_FRAMES][NEO_NUM_LEDS] = {
+    {
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT
+    },
+    {
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT
+    },
+    {
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_BLUE_BRIGHT,
+        LED_BLUE_BRIGHT
+    },
+    {
+        LED_BLUE_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_OFF,
+        LED_OFF,
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_BLUE_BRIGHT
+    },
+    {
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_GREEN_BRIGHT,
+        LED_GREEN_BRIGHT
+    },
+    {
+        LED_GREEN_BRIGHT,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_GREEN_BRIGHT
+    }
+};
+
+static uint32_t missAnimation[ANIMATION_FRAMES][NEO_NUM_LEDS] = {
+    {
+        LED_WHITE,
+        LED_RED,
+        LED_RED,
+        LED_RED_BRIGHT,
+        LED_RED_BRIGHT,
+        LED_RED,
+        LED_RED,
+        LED_WHITE
+    },
+    {
+        LED_WHITE,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_WHITE
+    },
+    {
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED
+    },
+    {
+        LED_OFF,
+        LED_OFF,
+        LED_WHITE,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED,
+        LED_RED
+    },
+    {
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_WHITE,
+        LED_RED,
+        LED_RED,
+        LED_RED
+    },
+    {
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_OFF,
+        LED_WHITE,
+        LED_RED
+    }
+};
+
 static bool isInitialized = false;
 static bool isRunning = false;
 static pthread_t mainThreadID;
@@ -46,6 +173,7 @@ static bool onTarget = false;
 static int prevRotaryCounter = 0;
 static int currentRotaryCounter;
 static coordinates Target;
+static bool isPlayingAnimation = false;
 
 static void newTarget() {
     srand(time(NULL));
@@ -54,12 +182,29 @@ static void newTarget() {
     Target.y = ((double)rand() / RAND_MAX) - ABS_POINT_RANGE;
 }
 
+static void playAnimation(uint32_t animation[][NEO_NUM_LEDS])
+{
+    isPlayingAnimation = true;
+    for (int frame = 0; frame < ANIMATION_FRAMES; frame++) {
+        for (int led = 0; led < NEO_NUM_LEDS; led++) {
+            Neopixel_setLED(led, animation[frame][led]);
+        }
+
+        Timing_sleepForMS(ANIMATION_PLAY_TIME_MS / ANIMATION_FRAMES);
+    }
+    isPlayingAnimation = false;
+}
+
 // COLOR: color to use, set to bright color to ignore param BRIGHTCOLOR
 // Y: index of the middle bright led [-1, 8] (just 1 difference from led indexes [0, 7])
 // onY: if the target is already on Y or not, causes Y to be ignored
 // BRIGHTCOLOR: the bright version of COLOR, ignore if param COLOR is already bright
 static void setLEDsFromTarget(uint32_t color, int y, bool onY, uint32_t brightColor)
 {
+    if (isPlayingAnimation) {
+        return;
+    }
+
     Neopixel_resetLEDs();
 
     // turn on all LEDs
@@ -189,12 +334,15 @@ static void* gameThread(void* _args)
             printf("Hit!\n");
             hits += 1;
 
+            playAnimation(hitAnimation);
             newTarget();
         }
         // Off target and fired (IMPLEMENT LED MISS EFFECT)
         else if (!onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Miss!\n");
             misses += 1;
+
+            playAnimation(missAnimation);
         }
 
         prevRotaryCounter = currentRotaryCounter;
