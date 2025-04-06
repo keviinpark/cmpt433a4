@@ -69,8 +69,6 @@ static void *accelUpdateThread(void *args)
     // Configure accelerometer
     write_i2c_reg8(i2c_file_desc, REG_CONFIGURATION, 0x46);    
 
-    sleep(1);
-
     while (isRunning) {
         do_state();
     }

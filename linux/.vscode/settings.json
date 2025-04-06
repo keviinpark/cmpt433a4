@@ -15,6 +15,8 @@
         "audiomixer.h": "c",
         "pthread.h": "c",
         "cstdlib": "c",
-        "neopixelr5.h": "c"
+        "neopixelr5.h": "c",
+        "stdbool.h": "c",
+        "rotaryencoderbtn.h": "c"
     }
 }

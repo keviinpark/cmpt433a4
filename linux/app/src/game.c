@@ -3,6 +3,8 @@
 #include "hal/neopixelR5.h"
 #include "hal/accelerometer.h"
 #include "hal/rotaryEncoderBtn.h"
+#include <hal/joystickBtn.h>
+#include "common/shutdown.h"
 #include "common/timing.h"
 #include <assert.h>
 #include <pthread.h>
@@ -11,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+
 
 // abs. Breakpoints from 5 (furthest away) to 1 (closest/accurate)
 #define BREAKPOINT_5 0.5
@@ -93,6 +96,12 @@ static void* gameThread(void* _args)
     while (isRunning) {
         assert(curr >= -1);
         assert(curr <= NEO_NUM_LEDS);
+
+        if (JoystickBtn_getValue() != 0) {
+            printf("Joystick button hit!\n");
+            Shutdown_trigger();
+            isRunning = false;
+        }
 
         coordinates CurrentCoords = Accel_getCurrentCoords();
         printf("Current: %f, %f   |   Target: %f, %f\n", CurrentCoords.x, CurrentCoords.y, Target.x, Target.y);
@@ -182,24 +191,21 @@ static void* gameThread(void* _args)
             hits += 1;
             newTarget();
             printf("Random point: %f, %f\n", Target.x, Target.y);
-            Timing_sleepForMS(1000);
         }
 
         // Off target and fired (IMPLEMENT LED MISS EFFECT)
         else if (!onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Miss!\n");
             misses += 1;
-            Timing_sleepForMS(1000);
         }
 
         prevRotaryCounter = currentRotaryCounter;
 
         Timing_sleepForMS(1000);
 
-        /* printf("Elapsed time ms: %lld\n", elapsedTimeMS);
-
         long long startTimeMS = Timing_getTimeMS();
 
+        /*
         Neopixel_resetLEDs();
         
         // animation
@@ -227,12 +233,10 @@ static void* gameThread(void* _args)
             curr--;
         } else {
             curr++;
-        }
+        }*/
 
-        
-
-        long long currentTimeMS = Timing_getTimeMS() + 100; // + account for sleep
-        elapsedTimeMS += currentTimeMS - startTimeMS; */
+        long long currentTimeMS = Timing_getTimeMS() + 1000; // + account for sleep
+        elapsedTimeMS += currentTimeMS - startTimeMS;
     }
 
     return NULL;
