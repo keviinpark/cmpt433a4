@@ -94,6 +94,9 @@ void DrawStuff_cleanup()
     assert(isInitialized);
     isRunning = false;
 
+    LCD_1IN54_Clear(BLACK); 
+    LCD_SetBacklight(0);
+
     int cancelErr = pthread_cancel(lcdThread);
     
     if (cancelErr) {
