@@ -12,6 +12,13 @@
 #include <stdlib.h>
 #include <math.h>
 
+// abs. Breakpoints from 5 (furthest away) to 1 (closest/accurate)
+#define BREAKPOINT_5 0.5
+#define BREAKPOINT_4 0.4
+#define BREAKPOINT_3 0.3
+#define BREAKPOINT_2 0.2
+#define BREAKPOINT_1 0.1
+
 static bool isInitialized = false;
 static bool isRunning = false;
 static pthread_t mainThreadID;
@@ -28,6 +35,39 @@ void newTarget() {
 
     Target.x = ((double)rand() / RAND_MAX) - 0.5;
     Target.y = ((double)rand() / RAND_MAX) - 0.5;
+}
+
+// COLOR: color to use, set to bright color to ignore param BRIGHTCOLOR
+// Y: index of the middle bright led [-1, 8] (just 1 difference from led indexes [0, 7])
+// onY: if the target is already on Y or not, causes Y to be ignored
+// BRIGHTCOLOR: the bright version of COLOR, ignore if param COLOR is already bright
+static void setLEDsFromTarget(uint32_t color, int y, bool onY, uint32_t brightColor)
+{
+    Neopixel_resetLEDs();
+
+    // turn on all LEDs
+    if (onY) {
+        for (int i = 0; i < NEO_NUM_LEDS; i++) {
+            Neopixel_setLED(i, color);
+        }
+
+        return;
+    }
+
+    int nextY = y + 1;
+    int prevY = y - 1;
+
+    if (y >= 0 && y < NEO_NUM_LEDS) {
+        Neopixel_setLED(y, brightColor);
+    }
+
+    if (prevY >= 0 && prevY < NEO_NUM_LEDS) {
+        Neopixel_setLED(prevY, color);
+    }
+
+    if (nextY >= 0 && nextY < NEO_NUM_LEDS) {
+        Neopixel_setLED(nextY, color);
+    }
 }
 
 // main thread
@@ -55,40 +95,82 @@ static void* gameThread(void* _args)
         assert(curr <= NEO_NUM_LEDS);
 
         coordinates CurrentCoords = Accel_getCurrentCoords();
-        printf("Current x, y coordinates: %f, %f\n", CurrentCoords.x, CurrentCoords.y);
+        printf("Current: %f, %f   |   Target: %f, %f\n", CurrentCoords.x, CurrentCoords.y, Target.x, Target.y);
+
+        // check y axis
+        double diff = fabs(CurrentCoords.y - Target.y);
+        bool onTargetY = diff <= BREAKPOINT_1;
+        bool isHigh = CurrentCoords.y >= Target.y;
+
+        if (onTargetY) {
+            // skip condition checking
+        } else if (isHigh) {
+            if (diff > BREAKPOINT_5) {
+                curr = -1;
+            }
+            else if (diff > BREAKPOINT_4) {
+                curr = 0;
+            }
+            else if (diff > BREAKPOINT_3) {
+                curr = 1;
+            }
+            else if (diff > BREAKPOINT_2) {
+                curr = 2;
+            }
+            else if (diff > BREAKPOINT_1) {
+                curr = 3;
+            }
+        } else {
+            if (diff > BREAKPOINT_5) {
+                curr = 8;
+            } else if (diff > BREAKPOINT_4) {
+                curr = 7;
+            } else if (diff > BREAKPOINT_3) {
+                curr = 6;
+            } else if (diff > BREAKPOINT_2) {
+                curr = 5;
+            } else if (diff > BREAKPOINT_1) {
+                curr = 4;
+            }
+        }
+
+        if (fabs(CurrentCoords.y - Target.y) <= BREAKPOINT_1) {
+            printf("Stay (y)!\n");
+        } else if (CurrentCoords.y < Target.y) {
+            printf("Move up!\n");
+        } else if (CurrentCoords.y > Target.y) {
+            printf("Move down!\n");
+        }
 
         // Directly pointing at target (IMPLEMENT BLUE WITH ALL LED ON)
-        if ((fabs(CurrentCoords.x - Target.x) <= 0.1) && (fabs(CurrentCoords.y - Target.y) <= 0.1)) {
+        if ((fabs(CurrentCoords.x - Target.x) <= BREAKPOINT_1) && (fabs(CurrentCoords.y - Target.y) <= BREAKPOINT_1)) {
             printf("Shoot!\n");
-            for (int i = 0; i < 8; i++) {
-                Neopixel_setLED(i, LED_BLUE_BRIGHT);
-            }
+
+            setLEDsFromTarget(LED_BLUE_BRIGHT, curr, onTargetY, LED_BLUE_BRIGHT);
+
             onTarget = true;
         } 
         
         // IMPLEMENT LED TO SHOW CLOSENESS TO TARGET
         // RED AND GREEN FOR LEFT AND RIGHT, BLUE FOR ON TARGET X
 
-        else if (fabs(CurrentCoords.x - Target.x) <= 0.1) {
-            printf("Stay!\n");
-            for (int i = 0; i < 8; i++) {
-                Neopixel_setLED(i, LED_BLUE);
-            }
+        else if (fabs(CurrentCoords.x - Target.x) <= BREAKPOINT_1) {
+            printf("Stay (x)!\n");
+
+            setLEDsFromTarget(LED_BLUE, curr, onTargetY, LED_BLUE_BRIGHT);
+
             onTarget = false;   
         }
         else if (Target.x < CurrentCoords.x) {
             printf("Move left!\n");
-            for (int i = 0; i < 8; i++) {
-                Neopixel_setLED(i, LED_RED);
-            }
+
+            setLEDsFromTarget(LED_RED, curr, onTargetY, LED_RED_BRIGHT);
             onTarget = false;        
         }
 
         else if (Target.x > CurrentCoords.x) {
             printf("Move right!\n");
-            for (int i = 0; i < 8; i++) {
-                Neopixel_setLED(i, LED_GREEN);
-            }
+            setLEDsFromTarget(LED_GREEN, curr, onTargetY, LED_GREEN_BRIGHT);
             onTarget = false;        
         }
         
