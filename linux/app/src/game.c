@@ -15,6 +15,8 @@
 #include <math.h>
 
 
+#define ABS_POINT_RANGE 0.5
+
 // abs. Breakpoints from 5 (furthest away) to 1 (closest/accurate)
 #define BREAKPOINT_5 0.5
 #define BREAKPOINT_4 0.4
@@ -22,22 +24,34 @@
 #define BREAKPOINT_2 0.2
 #define BREAKPOINT_1 0.1
 
+// LED indexes (0 - 7 = moving up)
+#define LED_0 0
+#define LED_1 1
+#define LED_2 2
+#define LED_3 3
+#define LED_4 4
+#define LED_5 5
+#define LED_6 6
+#define LED_7 7
+
+#define LOOP_DELAY_MS 100
+
 static bool isInitialized = false;
 static bool isRunning = false;
 static pthread_t mainThreadID;
 static int hits = 0;
 static int misses = 0;
 static long long elapsedTimeMS = 0;
-bool onTarget = false;
-int prevRotaryCounter = 0;
-int currentRotaryCounter;
-coordinates Target;
+static bool onTarget = false;
+static int prevRotaryCounter = 0;
+static int currentRotaryCounter;
+static coordinates Target;
 
-void newTarget() {
+static void newTarget() {
     srand(time(NULL));
 
-    Target.x = ((double)rand() / RAND_MAX) - 0.5;
-    Target.y = ((double)rand() / RAND_MAX) - 0.5;
+    Target.x = ((double)rand() / RAND_MAX) - ABS_POINT_RANGE;
+    Target.y = ((double)rand() / RAND_MAX) - ABS_POINT_RANGE;
 }
 
 // COLOR: color to use, set to bright color to ignore param BRIGHTCOLOR
@@ -51,7 +65,7 @@ static void setLEDsFromTarget(uint32_t color, int y, bool onY, uint32_t brightCo
     // turn on all LEDs
     if (onY) {
         for (int i = 0; i < NEO_NUM_LEDS; i++) {
-            Neopixel_setLED(i, color);
+            Neopixel_setLED(i, brightColor);
         }
 
         return;
@@ -73,88 +87,79 @@ static void setLEDsFromTarget(uint32_t color, int y, bool onY, uint32_t brightCo
     }
 }
 
+// Determine brightest LED index (does not check whether target y is in the correct range)
+static int getBrightestLEDindex(coordinates currentCoords, coordinates target)
+{
+    double diff = fabs(currentCoords.y - target.y);
+    bool isHigh = currentCoords.y >= target.y;
+
+    if (isHigh) {
+        if (diff > BREAKPOINT_5) {
+            return LED_0 - 1;
+        } else if (diff > BREAKPOINT_4) {
+            return LED_0;
+        } else if (diff > BREAKPOINT_3) {
+            return LED_1;
+        } else if (diff > BREAKPOINT_2) {
+            return LED_2;
+        } else if (diff > BREAKPOINT_1) {
+            return LED_3;
+        }
+    } else {
+        if (diff > BREAKPOINT_5) {
+            return LED_7 + 1;
+        } else if (diff > BREAKPOINT_4) {
+            return LED_7;
+        } else if (diff > BREAKPOINT_3) {
+            return LED_6;
+        } else if (diff > BREAKPOINT_2) {
+            return LED_5;
+        } else if (diff > BREAKPOINT_1) {
+            return LED_4;
+        }
+    }
+
+    return -1;
+}
+
 // main thread
 static void* gameThread(void* _args)
 {
     (void)_args; // disable unused error
 
-    // TODO support multiple different animations.
-    // This is currently just testing out LEDs
-    // count to 8 (last led index + 1) and then loop back around to 1, then
-    // repeat this process (i.e. -1, 0, 1, 2, ..., 7, 8, 7, 6, ..., 0, -1, 0, 1, 2 ...)
-
     Neopixel_resetLEDs();
 
-    // bool reverse = false;
-    int curr = -1;
+    // curr represents the brightest led index.
+    // can be 1 off of 0 or 7 since there may not always be a brightest led value.
+    int curr = LED_0 - 1;
 
     // Set random point as target
     newTarget();
-    
-    printf("Random point: %f, %f\n", Target.x, Target.y);
 
     while (isRunning) {
-        assert(curr >= -1);
+        assert(curr >= (LED_0 - 1));
         assert(curr <= NEO_NUM_LEDS);
 
-        if (JoystickBtn_getValue() != 0) {
-            printf("Joystick button hit!\n");
+        long long startTimeMS = Timing_getTimeMS();
+
+        bool checkShutdown = JoystickBtn_getValue() != 0;
+        if (checkShutdown) {
             Shutdown_trigger();
             isRunning = false;
+            break;
         }
 
         coordinates CurrentCoords = Accel_getCurrentCoords();
-        printf("Current: %f, %f   |   Target: %f, %f\n", CurrentCoords.x, CurrentCoords.y, Target.x, Target.y);
 
         // check y axis
         double diff = fabs(CurrentCoords.y - Target.y);
         bool onTargetY = diff <= BREAKPOINT_1;
-        bool isHigh = CurrentCoords.y >= Target.y;
-
-        if (onTargetY) {
-            // skip condition checking
-        } else if (isHigh) {
-            if (diff > BREAKPOINT_5) {
-                curr = -1;
-            }
-            else if (diff > BREAKPOINT_4) {
-                curr = 0;
-            }
-            else if (diff > BREAKPOINT_3) {
-                curr = 1;
-            }
-            else if (diff > BREAKPOINT_2) {
-                curr = 2;
-            }
-            else if (diff > BREAKPOINT_1) {
-                curr = 3;
-            }
-        } else {
-            if (diff > BREAKPOINT_5) {
-                curr = 8;
-            } else if (diff > BREAKPOINT_4) {
-                curr = 7;
-            } else if (diff > BREAKPOINT_3) {
-                curr = 6;
-            } else if (diff > BREAKPOINT_2) {
-                curr = 5;
-            } else if (diff > BREAKPOINT_1) {
-                curr = 4;
-            }
-        }
-
-        if (fabs(CurrentCoords.y - Target.y) <= BREAKPOINT_1) {
-            printf("Stay (y)!\n");
-        } else if (CurrentCoords.y < Target.y) {
-            printf("Move up!\n");
-        } else if (CurrentCoords.y > Target.y) {
-            printf("Move down!\n");
+        if (!onTargetY) { // every led should be the brightest anyway if onTargetY == true
+            curr = getBrightestLEDindex(CurrentCoords, Target);
         }
 
         // Directly pointing at target (IMPLEMENT BLUE WITH ALL LED ON)
         if ((fabs(CurrentCoords.x - Target.x) <= BREAKPOINT_1) && (fabs(CurrentCoords.y - Target.y) <= BREAKPOINT_1)) {
-            printf("Shoot!\n");
-
             setLEDsFromTarget(LED_BLUE_BRIGHT, curr, onTargetY, LED_BLUE_BRIGHT);
 
             onTarget = true;
@@ -164,35 +169,28 @@ static void* gameThread(void* _args)
         // RED AND GREEN FOR LEFT AND RIGHT, BLUE FOR ON TARGET X
 
         else if (fabs(CurrentCoords.x - Target.x) <= BREAKPOINT_1) {
-            printf("Stay (x)!\n");
-
             setLEDsFromTarget(LED_BLUE, curr, onTargetY, LED_BLUE_BRIGHT);
 
             onTarget = false;   
         }
         else if (Target.x < CurrentCoords.x) {
-            printf("Move left!\n");
-
             setLEDsFromTarget(LED_RED, curr, onTargetY, LED_RED_BRIGHT);
             onTarget = false;        
         }
 
         else if (Target.x > CurrentCoords.x) {
-            printf("Move right!\n");
             setLEDsFromTarget(LED_GREEN, curr, onTargetY, LED_GREEN_BRIGHT);
             onTarget = false;        
         }
-        
         currentRotaryCounter = RotaryEncoderBtn_getValue();
 
         // On target and fired (IMPLEMENT LED HIT EFFECT)
         if (onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Hit!\n");
             hits += 1;
-            newTarget();
-            printf("Random point: %f, %f\n", Target.x, Target.y);
-        }
 
+            newTarget();
+        }
         // Off target and fired (IMPLEMENT LED MISS EFFECT)
         else if (!onTarget && currentRotaryCounter != prevRotaryCounter) {
             printf("Miss!\n");
@@ -201,41 +199,8 @@ static void* gameThread(void* _args)
 
         prevRotaryCounter = currentRotaryCounter;
 
-        Timing_sleepForMS(1000);
-
-        long long startTimeMS = Timing_getTimeMS();
-
-        /*
-        Neopixel_resetLEDs();
-        
-        // animation
-        int prev = curr - 1;
-        if (prev >= 0 && prev < NEO_NUM_LEDS) {
-            Neopixel_setLED(prev, LED_GREEN);
-        }
-
-        if (curr >= 0 && curr < NEO_NUM_LEDS) {
-            Neopixel_setLED(curr, LED_GREEN_BRIGHT);
-        }
-
-        int next = curr + 1;
-        if (next >= 0 && next < NEO_NUM_LEDS) {
-            Neopixel_setLED(next, LED_GREEN);
-        }
-
-        if (curr < 0) {
-            reverse = false;
-        } else if (curr >= NEO_NUM_LEDS) {
-            reverse = true;
-        }
-
-        if (reverse) {
-            curr--;
-        } else {
-            curr++;
-        }*/
-
-        long long currentTimeMS = Timing_getTimeMS() + 1000; // + account for sleep
+        Timing_sleepForMS(LOOP_DELAY_MS);
+        long long currentTimeMS = Timing_getTimeMS() + LOOP_DELAY_MS; // + account for sleep
         elapsedTimeMS += currentTimeMS - startTimeMS;
     }
 
