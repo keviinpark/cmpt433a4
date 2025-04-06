@@ -348,7 +348,7 @@ static void* gameThread(void* _args)
         prevRotaryCounter = currentRotaryCounter;
 
         Timing_sleepForMS(LOOP_DELAY_MS);
-        long long currentTimeMS = Timing_getTimeMS() + LOOP_DELAY_MS; // + account for sleep
+        long long currentTimeMS = Timing_getTimeMS(); // + account for sleep
         elapsedTimeMS += currentTimeMS - startTimeMS;
     }
 

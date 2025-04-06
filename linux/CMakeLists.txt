@@ -19,7 +19,7 @@ add_compile_options(-Werror)
 add_compile_options(-g)
 
 # ignore unused variables and parameters for now
-#add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-unused-parameter)
+add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-unused-parameter)
 
 add_compile_options(-Wno-pointer-arith)
 
