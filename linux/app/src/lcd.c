@@ -32,7 +32,7 @@ static pthread_t lcdThread;
 #define LCD_VOL_POS_Y_OFFSET 30
 #define LCD_BPM_POS_X_OFFSET 110
 #define LCD_BPM_POS_Y_OFFSET 30
-#define BUFF_MAX_LEN 20
+#define BUFF_MAX_LEN 30
 
 static void* lcdThreadProgram (void* arg) {
 
